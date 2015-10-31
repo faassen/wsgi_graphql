@@ -41,8 +41,11 @@ def graphql_wsgi_dynamic(get_options):
 
         d = {'data': result.data}
         if result.errors:
-            d['errors'] = [format_error(error)
-                           for error in result.errors]
+            d['errors'] = [
+                format_error(error) if hasattr(error, 'locations')
+                else {type(error).__name__: error.message}
+                for error in result.errors
+            ]
 
         return Response(status=status,
                         content_type='application/json',
