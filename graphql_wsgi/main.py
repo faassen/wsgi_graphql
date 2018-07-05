@@ -101,6 +101,17 @@ def parse_body(request):
     return {}
 
 
+def dict_merge(dct, merge_dct):
+    """ Recursive dict merge
+
+    Inspired by: https://gist.github.com/angstwad/bf22d1822c38a92ec0a9."""
+    for k, v in merge_dct.iteritems():
+        if (k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], dict)):
+            dict_merge(dct[k], merge_dct[k])
+        else:
+            dct[k] = merge_dct[k]
+
+
 def get_graphql_params(request, data):
     query = request.GET.get('query') or data.get('query')
 
@@ -120,7 +131,12 @@ def get_graphql_params(request, data):
 
     for key, value in request.POST.items():  # support for apollo-upload-client
         if key.startswith('variables.'):
-            variables[key[10:]] = key
+            # variables.my.img => { my: { img: 'variables.my.img' }}
+            rest = key[10:]
+            parts = rest.split('.')
+            result = reduce(
+                lambda obj, k: {k: obj}, [key] + list(reversed(parts)))
+            dict_merge(variables, result)
 
     return query, variables, operation_name
 
